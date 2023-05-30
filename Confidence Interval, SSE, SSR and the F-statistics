@@ -1,0 +1,99 @@
+'''Read a data set. Fit a linear model for the data set.
+    Calculate the confidence interval, SSE, SSR and the F-statistics at each sample size.'''
+
+import statsmodels.api as sm
+import numpy as np
+from scipy import stats
+
+beta = [1, 1, 2, 0]  # beta0, beta1, beta2, beta3
+x_1, x_2, x_3 = np.random.uniform(0, 1, 100), np.random.uniform(0, 1, 100), np.random.uniform(0, 1, 100)
+epsilon = np.random.normal(0, 1, 100)
+x_list = sm.add_constant(np.c_[x_1, x_2, x_3])  # x0, x1, x2, x3
+y_list = np.dot(x_list, beta) + epsilon
+model = sm.OLS(y_list, x_list)
+result = model.fit()
+beta_hat = result.params
+y_hat = result.fittedvalues
+def k_plus_1(x, k):
+    return np.linalg.inv(np.dot(np.transpose(x), x))[k][k]
+
+# Codes for i.
+SSE = np.sum(np.square(y_list - y_hat))
+s_square = SSE/(100-3-1)
+se_0 = np.sqrt(s_square * k_plus_1(x_list, 0))
+se_1 = np.sqrt(s_square * k_plus_1(x_list, 1))
+se_2 = np.sqrt(s_square * k_plus_1(x_list, 2))
+se_3 = np.sqrt(s_square * k_plus_1(x_list, 3))
+t_alpha = stats.t.ppf(0.975, 96)    # alpha=0.05, n-p-1=96
+beta_0_low, beta_0_high = beta_hat[0]-t_alpha*se_0, beta_hat[0]+t_alpha*se_0
+beta_1_low, beta_1_high = beta_hat[1]-t_alpha*se_1, beta_hat[1]+t_alpha*se_1
+beta_2_low, beta_2_high = beta_hat[2]-t_alpha*se_2, beta_hat[2]+t_alpha*se_2
+beta_3_low, beta_3_high = beta_hat[3]-t_alpha*se_3, beta_hat[3]+t_alpha*se_3
+print('The 95% CI for beta0 is:[',beta_0_low,',', beta_0_high,']')
+print('The 95% CI for beta1 is:[',beta_1_low,',', beta_1_high,']')
+print('The 95% CI for beta2 is:[',beta_2_low,',', beta_2_high,']')
+print('The 95% CI for beta3 is:[',beta_3_low,',', beta_3_high,']')
+
+# Codes for ii.
+y_bar = y_list.mean()
+SSR = np.sum(np.square(y_hat-y_bar))
+F_value = (SSR/3) / (SSE/(100-3-1))
+p_value = stats.f.sf(F_value, 3, 96)
+print('The SSE is: ', SSE)
+print('The SSR is: ', SSR)
+print('The value for F statistic is:', F_value)
+print('The corresponding p-value is: ', p_value)
+
+# Codes for iii.
+num_of_success = 0
+for times in range(1000):
+    x_1, x_2, x_3 = np.random.uniform(0, 1, 100), np.random.uniform(0, 1, 100), np.random.uniform(0, 1, 100)
+    epsilon_new = np.random.normal(0, 1, 100)
+    x_list_new = sm.add_constant(np.c_[x_1, x_2, x_3])  # insert a column 1 to combine with beta_0
+    y_list_new = np.dot(x_list_new, beta) + epsilon_new
+    model_new = sm.OLS(y_list_new, x_list_new)
+    result_new = model_new.fit()
+    beta_hat_new = result_new.params
+    y_hat_new = result_new.fittedvalues
+    SSE_new = np.sum(np.square(y_list_new-y_hat_new))
+    s_square = SSE_new / (100-3-1)
+    se_3_new = np.sqrt(s_square * k_plus_1(x_list_new, 3))
+    T_value = beta_hat_new[3]/se_3_new
+    p_value = stats.t.sf(T_value, 99)
+    if p_value < 0.05:
+        num_of_success += 1
+print('The number of simulation with p-value < 0.05 is:', num_of_success)
+
+# Codes for iv.
+x_0_list = [1, 0.3, 0.2, 0.7]
+y_0_predict = np.dot(x_0_list, beta_hat)
+xTx_1 = np.linalg.inv(np.dot(np.transpose(x_list), x_list))
+x0_x_x = np.dot(np.transpose(x_0_list), np.dot(xTx_1, x_0_list))
+sqrt = 1+s_square*x0_x_x
+y_0_predict_low = y_0_predict - np.sqrt(sqrt)*stats.t.ppf(0.975, 96)
+y_0_predict_high = y_0_predict + np.sqrt(sqrt)*stats.t.ppf(0.975, 96)
+print('The predicted value for y0 is: ', y_0_predict)
+print('The prediction interval for y0 is [', y_0_predict_low, ',', y_0_predict_high, ']')
+
+# Codes for v.
+n_list = [200, 500, 1000]
+beta = [1, 1, 2, 0]
+for size in n_list:
+    x_1_large, x_2_large, x_3_large = np.random.uniform(0, 1, size), np.random.uniform(0, 1, size), np.random.uniform(0, 1, size)
+    epsilon = np.random.normal(0, 1, size)
+    x_list_large = sm.add_constant(np.c_[x_1_large, x_2_large, x_3_large])
+    y_list_large = np.dot(x_list_large, beta) + epsilon
+    model_large = sm.OLS(y_list_large, x_list_large)
+    result_large = model_large.fit()
+    beta_hat_large = result_large.params
+    y_hat_large = result_large.fittedvalues
+    SSE_large = np.sum(np.square(y_list_large-y_hat_large))
+    s_square_large = SSE_large/(size-4)
+    x_0_list = [1, 0.3, 0.2, 0.7]
+    y_0_predict_large = np.dot(x_0_list, beta_hat_large)
+    xTx_1_large = np.linalg.inv(np.dot(np.transpose(x_list_large), x_list_large))
+    x0_x_x_large = np.dot(np.transpose(x_0_list), np.dot(xTx_1_large, x_0_list))
+    sqrt_large = 1+s_square*x0_x_x_large
+    y_predict_large_low = y_0_predict_large - np.sqrt(s_square_large*sqrt_large)*stats.t.ppf(0.975, size-4)
+    y_predict_large_high = y_0_predict_large + np.sqrt(s_square_large*sqrt_large)*stats.t.ppf(0.975, size-4)
+    print('The width of 95% prediction interval for yo are:', y_predict_large_high-y_predict_large_low, 'for n='+str(size))
