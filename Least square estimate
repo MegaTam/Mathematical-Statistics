@@ -1,0 +1,33 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+data = np.random.uniform(low=0, high=1, size=20)
+x_bar = data.mean()
+epsilon_i = np.random.normal(0, 0.1, 20)
+beta_0, beta_1 = 1, 2
+y_list = beta_0 + beta_1*data + epsilon_i
+y_bar = y_list.mean()
+plt.scatter(data, y_list)
+beta_1_hat = np.cov(data, y_list)[0][1]/np.var(data)
+beta_0_hat = y_bar - beta_1_hat*x_bar
+y_predict = beta_0_hat + beta_1_hat*data
+plt.plot(data, y_predict)
+plt.show()
+
+
+CO2_data = pd.read_csv(r"C:\Users\谭兆宏\Desktop\STA2004\CO2_data.csv")
+Temp_data = pd.read_csv(r"C:\Users\谭兆宏\Desktop\STA2004\Temp_data.csv")
+x = np.array(CO2_data['CO2'])
+x_bar = x.mean()
+y = np.array(Temp_data['Temperature'])
+y_bar = y.mean()
+plt.scatter(x, y)
+plt.show()
+beta_1_hat = np.cov(x, y)[0][1]/np.var(x)
+beta_0_hat = y_bar - beta_1_hat*x_bar
+y_predict = beta_0_hat + beta_1_hat*x
+plt.scatter(x, y)
+plt.plot(x, y_predict)
+plt.plot()
+plt.show()
